@@ -328,6 +328,7 @@ void outstreamxy(int x, int y, std::ostringstream& out=bgiout);
 // Mouse Functions (mouse.cpp)
 void clearmouseclick( int kind );
 void clearresizeevent( );
+int getmousescroll( );
 void getmouseclick( int kind, int& x, int& y );
 bool ismouseclick( int kind );
 bool isresizeevent( );

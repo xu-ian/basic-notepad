@@ -152,7 +152,6 @@ static void set_font(WindowData* pWndData)
 	yscale = 1.0;
 	mindex = pWndData->textInfo.charsize;
     }
-
     // with the scaling decided, make a font.
     hFont = CreateFont(
 	int(font_metrics[pWndData->textInfo.font][mindex].height * yscale), 

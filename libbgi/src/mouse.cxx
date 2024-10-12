@@ -49,13 +49,14 @@ void clearmouseclick( int kind )
 }
 
 /*
- * Gets the scroll status of the mouse 
+ * Gets the scroll status of the mouse, then resets it
  */
 int getmousescroll()
 {
     WindowData *pWndData = BGI__GetWindowDataPtr( );
-
-    return pWndData->mouse_scroll;
+    int scroll = pWndData->mouse_scroll;
+    pWndData->mouse_scroll = 0;
+    return scroll;
 }
 
 void getmouseclick( int kind, int& x, int& y )
