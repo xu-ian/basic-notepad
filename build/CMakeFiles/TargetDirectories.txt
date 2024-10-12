@@ -1,8 +1,0 @@
-C:/Users/wwwJb/Downloads/projects/WinBGIm-64-main/build/CMakeFiles/edit_cache.dir
-C:/Users/wwwJb/Downloads/projects/WinBGIm-64-main/build/CMakeFiles/rebuild_cache.dir
-C:/Users/wwwJb/Downloads/projects/WinBGIm-64-main/build/libbgi/CMakeFiles/bgi.dir
-C:/Users/wwwJb/Downloads/projects/WinBGIm-64-main/build/libbgi/CMakeFiles/edit_cache.dir
-C:/Users/wwwJb/Downloads/projects/WinBGIm-64-main/build/libbgi/CMakeFiles/rebuild_cache.dir
-C:/Users/wwwJb/Downloads/projects/WinBGIm-64-main/build/test/CMakeFiles/testbgi.dir
-C:/Users/wwwJb/Downloads/projects/WinBGIm-64-main/build/test/CMakeFiles/edit_cache.dir
-C:/Users/wwwJb/Downloads/projects/WinBGIm-64-main/build/test/CMakeFiles/rebuild_cache.dir

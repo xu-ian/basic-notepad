@@ -1,2 +1,0 @@
-C:\msys64\ucrt64\bin\ar.exe qc libbgi.a CMakeFiles/bgi.dir/src/drawing.cxx.obj CMakeFiles/bgi.dir/src/misc.cxx.obj CMakeFiles/bgi.dir/src/mouse.cxx.obj CMakeFiles/bgi.dir/src/palette.cxx.obj CMakeFiles/bgi.dir/src/text.cxx.obj CMakeFiles/bgi.dir/src/winbgi.cxx.obj CMakeFiles/bgi.dir/src/winthread.cxx.obj CMakeFiles/bgi.dir/src/dibutil.cxx.obj CMakeFiles/bgi.dir/src/file.cxx.obj
-C:\msys64\ucrt64\bin\ranlib.exe libbgi.a

@@ -1,3 +1,0 @@
-"C:\Program Files\CMake\bin\cmake.exe" -E rm -f CMakeFiles\testbgi.dir/objects.a
-C:\msys64\ucrt64\bin\ar.exe qc CMakeFiles\testbgi.dir/objects.a @CMakeFiles\testbgi.dir\objects1.rsp
-g++  -m64 -fno-rtti -fno-exceptions -Wno-error  -Wwrite-strings -Wno-narrowing -fpermissive -g -Wl,--whole-archive CMakeFiles\testbgi.dir/objects.a -Wl,--no-whole-archive -o testbgi.exe -Wl,--out-implib,libtestbgi.dll.a -Wl,--major-image-version,0,--minor-image-version,0 @CMakeFiles\testbgi.dir\linkLibs.rsp
