@@ -1,4 +1,5 @@
 add_library(bgi src/drawing.cxx
+        src/keyboard.cxx
         src/misc.cxx
         src/mouse.cxx
         src/palette.cxx

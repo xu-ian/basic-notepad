@@ -337,6 +337,12 @@ int mousey( );
 void registermousehandler( int kind, void h( int, int ) );
 void setmousequeuestatus( int kind, bool status=true );
 
+// Keyboard Functions (keyboard.cpp)
+bool isKeypress( );
+bool checkPressed(const char *key);
+void keypressName(char *str);
+
+
 // Palette Functions
 palettetype *getdefaultpalette( );
 void getpalette( palettetype *palette );

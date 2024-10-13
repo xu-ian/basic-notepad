@@ -389,6 +389,16 @@ LRESULT CALLBACK WndProc
         if ( handler != NULL )
 	    handler( where.x, where.y );
     }
+    if (uiMessage == WM_KEYDOWN)
+    {
+        pWndData->key_down[wParam] = true;
+        pWndData->key_value[wParam] = lParam;
+    }
+
+    if (uiMessage == WM_KEYUP)
+    {
+        pWndData->key_down[wParam] = false;
+    }
 
     switch ( uiMessage )
     {

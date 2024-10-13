@@ -65,6 +65,8 @@ struct WindowData
     std::queue<POINTS> clicks[WM_MOUSELAST - WM_MOUSEFIRST + 1];   // Array to hold the coordinates of the clicks
     bool mouse_queuing[WM_MOUSELAST - WM_MOUSEFIRST + 1]; // Array to tell whether mouse events should be queued
     Handler mouse_handlers[WM_MOUSELAST - WM_MOUSEFIRST + 1];   // Array of mouse event handlers
+    bool key_down[256];         // Array of all key presses
+    LONG key_value[256];     // Array of all key press lparams
     bool refreshing;            // True if autorefershing should be done after each drawing event
     HANDLE hDCMutex;            // A mutex so that only one thread at a time can access the hDC array.
 };
