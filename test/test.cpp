@@ -18,6 +18,8 @@ const char down[5] = {'D','o','w','n','\0'};
 
 static char buf[10000000] = "";
 
+static char clipboard[1000] = "";
+
 struct Point
 {
     int x;
@@ -32,26 +34,10 @@ struct Point
 
 static Point cursor = {0,0};
 static Point mouse_start = {0,0};
-
+static Point copy_start = {-1,-1};
 
 template <typename T> int sgn(T val) {
     return (T(0) < val) - (val < T(0));
-}
-
-void drawAxisY(int offSet, int color)
-{
-    for (int i = 0; i < Width; i++)
-    {
-        putpixel(i, Height - offSet - 20, color);
-    }
-}
-
-void drawAxisX(int offSet, int color)
-{
-    for (int i = 0; i < Height; i++)
-    {
-        putpixel(offSet, i, color);
-    }
 }
 
 void drawFillRect(Point a, Point b, int col)
@@ -70,7 +56,18 @@ void drawText(Point a, char* text)
 {
     int old_col = getcolor();
     int old_bk_col = getbkcolor();
-    setbkcolor(getpixel(a.x,a.y));
+    if (getpixel(a.x+6,a.y+12) == BLUE)
+    {
+        setbkcolor(BLUE);
+    }
+    else if (getpixel(a.x,a.y) == LIGHTGRAY)
+    {
+        setbkcolor(LIGHTGRAY);
+    }
+    else
+    {
+        setbkcolor(WHITE);
+    }
     setcolor(BLACK);
     outtextxy(a.x,a.y,text);
     setcolor(old_col);
@@ -156,7 +153,7 @@ void clearRowAfter(Point cursor, int position)
     while(buf[pos] != '\0' && buf[pos] != '\n')
     {
         char str[2] = {' ','\0'};
-        drawText({62 + cur.x*12, cur.y*20}, str);
+        drawText({62 + cur.x*12, (cur.y-start_num)*20}, str);
         cur = {cur.x+1,cur.y};
         pos++;
     }
@@ -179,7 +176,7 @@ void clearAllAfter(Point cursor, int position)
         else
         {
             char str[2] = {' ','\0'};
-            drawText({62 + cur.x*12, cur.y*20}, str);
+            drawText({62 + cur.x*12, (cur.y-start_num)*20}, str);
             cur = {cur.x+1,cur.y};
         }
         pos++;
@@ -284,10 +281,149 @@ void drawSidebar()
     setbkcolor(old_col);
 }
 
+void checkScrollUp()
+{
+    if (cursor.y < start_num)
+    {
+        clearAllAfter({0,0},0);
+        start_num--;
+        drawText();
+        drawSidebar();
+    }
+}
+
+void checkScrollDown()
+{
+    if (cursor.y >= start_num + 30)
+    {
+        clearAllAfter({0,0},0);
+        start_num++;
+        drawText();
+        drawSidebar();
+    }
+}
+
+void highlightSelection()
+{
+    if (copy_start.x != -1)
+    {
+        Point temp = {cursor.x, cursor.y};
+        Point temp2 = {cursor.x, cursor.y};
+        int pos1 = getTextPosition();
+        cursor = {copy_start.x,copy_start.y};
+        int pos2 = getTextPosition();
+        cursor = {temp.x,temp.y};
+        int old_col = getcolor();
+
+        if (pos1 == pos2)
+        {
+            return;
+        }
+        else if (pos1 > pos2)
+        {
+            int tmp = pos1;
+            pos1 = pos2;
+            pos2 = tmp;
+            temp2 = {copy_start.x,copy_start.y};
+        }
+
+        setcolor(BLACK);
+        //Underline all chars 
+        for(int i = pos1; i < pos2; i++)
+        {
+            if(buf[i] == '\n'){
+                temp2 = {0, temp2.y+1};
+            }
+            else {
+                line(60+(temp2.x)*12,(temp2.y+1)*20,60+(temp2.x+1)*12,(temp2.y+1)*20);
+                temp2 = {temp2.x+1, temp2.y};
+            }
+        }
+        setcolor(old_col);
+        cursor = {temp.x,temp.y};
+    }
+}
+
+void trackCopy()
+{
+    if (!checkPressed("Shift"))
+    {
+        copy_start = {-1,-1};
+    }
+}
+
+void copySelection()
+{
+    if (copy_start.x != -1)
+    {
+        Point temp = {cursor.x, cursor.y};
+        int pos1 = getTextPosition();
+        cursor = {copy_start.x,copy_start.y};
+        int pos2 = getTextPosition();
+        cursor = {temp.x,temp.y};
+        if (pos1 == pos2)
+        {
+            return;
+        }
+        else if (pos1 > pos2)
+        {
+            int tmp = pos1;
+            pos1 = pos2;
+            pos2 = pos1;
+        }
+        for(int i = pos1; i < pos2; i++)
+        {
+            clipboard[i-pos1] = buf[i];
+        }
+        clipboard[pos2] = '\0';
+        printf("Copied selection:%s\n", clipboard);
+    }
+}
+
+void clearSelection()
+{
+    Point temp = {cursor.x, cursor.y};
+    int pos1 = getTextPosition();
+    cursor = {copy_start.x,copy_start.y};
+    int pos2 = getTextPosition();
+
+    if (pos1 < pos2)
+    {
+        int tmp = pos1;
+        pos1 = pos2;
+        pos2 = pos1;
+        cursor = {temp.x,temp.y};
+    }
+    
+    while(pos1 > pos2)
+    {
+        removeCharAtCursor();
+        pos1--;
+    }
+    cursor = {temp.x,temp.y};
+}
+
+void pasteSelection()
+{
+    if (clipboard[0] == '\0')
+    {
+        return;
+    }
+    int acc = 0;
+    while(clipboard[acc] != '\0')
+    {  
+        char str[2] = {clipboard[acc],'\0'};
+        addCharAtCursor(str);
+        acc++;
+    }
+    drawText();
+}
+
 int main()
 {
     initwindow(Width, Height);
     buf[0] = '\0';
+    clipboard[0] = '\0';
     settextjustify(LEFT_TEXT,TOP_TEXT);
     settextstyle(DEFAULT_FONT, 0, 0);
     setbkcolor(WHITE);
@@ -321,12 +457,42 @@ int main()
                 //Highlight a blue region
             }
             cursor_down = false;
+            clearmouseclick(WM_LBUTTONUP);
         }
         else if(ismouseclick(WM_LBUTTONDOWN) && !cursor_down)
         {
             mouse_start = {mousex(),mousey()};
             cursor_down = true;
+            clearmouseclick(WM_LBUTTONDOWN);
         }
+        else if(ismouseclick(WM_MOUSEMOVE) && cursor_down)
+        {
+            int left = (mousex()-60)/12;
+            int top = mousey()/20;
+            int right = (mouse_start.x-60)/12;
+            int bot = mouse_start.y/20;
+            if (top != bot && left != right)
+            {
+                if (bot < top) {
+                    top = mousey()/20;
+                    bot = mouse_start.y/20;
+                }
+                if(right < left)
+                {
+                    left = (mouse_start.x-60)/12;
+                    right = (mousex()-60)/12;
+                }
+                drawFillRect({60+(left)*12,top*20},{60+(right+1)*12,(bot+1)*20},BLUE);
+                drawText();
+            }
+            clearmouseclick(WM_MOUSEMOVE);
+        }
+        
+        if (checkPressed("Shift") && copy_start.x == -1){
+            printf("Copy start");
+            copy_start = {cursor.x, cursor.y};
+        }
+
         if (isKeypress())
         {
             drawCursor(WHITE);
@@ -335,6 +501,7 @@ int main()
                 if (!(cursor.x == 0 and cursor.y == 0))
                 {
                     removeCharAtCursor();
+                    checkScrollUp();
                 }
             }
             else if (checkPressed(left)) 
@@ -343,11 +510,14 @@ int main()
                 {
                     Point actual_cursor = getActualCursor();
                     cursor = {actual_cursor.x-1,cursor.y};
+                    trackCopy();
                 }
                 else if (cursor.x == 0 and cursor.y > 0)
                 {
                     cursor = {9999,cursor.y-1};
                     cursor = getActualCursor();
+                    trackCopy();
+                    checkScrollUp();
                 }
             }
             else if (checkPressed(right))
@@ -357,10 +527,13 @@ int main()
                 if (c != '\n' && c != '\0')
                 {
                     cursor = {actual_cursor.x+1,cursor.y};
+                    trackCopy();
                 }
                 else if (c == '\n')
                 {
                     cursor = {0, cursor.y + 1};
+                    trackCopy();
+                    checkScrollDown();
                 }
             }
             else if (checkPressed(down))
@@ -375,12 +548,14 @@ int main()
                 {
                     cursor = {cursor.x, cursor.y-1};
                 }
+                checkScrollDown();
             }
             else if (checkPressed(up))
             {
                 if (cursor.y > 0)
                 {
                     cursor = {cursor.x, cursor.y-1};
+                    checkScrollUp();
                 }
             }
             else
@@ -388,17 +563,36 @@ int main()
                 char *str = (char *)malloc(sizeof(char)*50);
                 str[0] = '\0';
                 keypressName(str);
-                if (str[0] != '\0') 
+                
+                if(checkPressed("Control"))
+                {
+                    if (str[0] == 'C' || str[0] == 'c')
+                    {
+                        copySelection();
+                    }
+                    else if(str[0] != 'V' || str[0] != 'v')
+                    {
+                        pasteSelection();
+                    }
+                    else if(str[0] != 'X' || str[0] != 'x')
+                    {
+                        printf("Cutting selection");
+                        copySelection();
+                        clearSelection();
+                    }
+                }
+                else if (str[0] != '\0') 
                 {
                     addCharAtCursor(str);
+                    checkScrollDown();
                 }
                 free(str);
             }
             drawCursor(BLACK);
             drawText();
+            highlightSelection();
         }
 
-    
         if (counter % 50 == 0) {
             cursor_col = BLACK;
             drawCursor(cursor_col);

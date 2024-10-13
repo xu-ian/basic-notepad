@@ -339,6 +339,7 @@ void setmousequeuestatus( int kind, bool status=true );
 
 // Keyboard Functions (keyboard.cpp)
 bool isKeypress( );
+bool checkKeypress(char c);
 bool checkPressed(const char *key);
 void keypressName(char *str);
 

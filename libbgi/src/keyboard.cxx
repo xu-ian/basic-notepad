@@ -95,6 +95,12 @@ bool isKeypress()
   return false;
 }
 
+bool checkKeypress(char c)
+{
+  WindowData *pWndData = BGI__GetWindowDataPtr( );
+  return pWndData->key_down[c];
+}
+
 //Check if a given special key is pressed
 bool checkPressed(const char *key)
 {
@@ -129,6 +135,14 @@ bool checkPressed(const char *key)
     tmp = pWndData->key_down[VK_BACK];
     pWndData->key_down[VK_BACK] = false;
     return tmp;
+  }
+  else if (strcmp(key,"Shift") == 0)
+  {
+    return pWndData->key_down[VK_SHIFT];
+  }
+  else if (strcmp(key,"Control") == 0)
+  {
+    return pWndData->key_down[VK_CONTROL];
   }
   return false;
 }
