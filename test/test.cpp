@@ -10,7 +10,12 @@ static int cursor_col = BLACK;
 static bool cursor_down = false;
 
 const int Width = 800;
-const int Height = 600;
+const int Height = 624;
+const int xoffset = 62;
+const int yoffset = 24;
+const int charwidth = 12;
+const int charheight = 20;
+
 const char left[5] = {'L','e','f','t','\0'};
 const char right[6] = {'R','i','g','h','t','\0'};
 const char up[3] = {'U','p','\0'};
@@ -51,11 +56,29 @@ void drawFillRect(Point a, Point b, int col)
     setcolor(old_col);
 }
 
+Point pixelToCoordinate(Point a)
+{
+    return Point(xoffset+a.x*charwidth,yoffset+(a.y-start_num)*charheight);
+}
+
+Point coordinateToPixel(Point a)
+{
+    return Point((a.x-xoffset)/charwidth,(a.y-yoffset)/charheight);
+}
+
 void drawText(Point a, char* text) 
 {
+    if(a.y == yoffset)
+    {
+        printf("%s\n", text);
+    }
     int old_col = getcolor();
     int old_bk_col = getbkcolor();
-    (getpixel(a.x,a.y) == LIGHTGRAY) ? setbkcolor(LIGHTGRAY) : setbkcolor(WHITE);
+    (getpixel(a.x,a.y) == LIGHTGRAY) 
+    ? setbkcolor(LIGHTGRAY) 
+    : (getpixel(a.x,a.y) == DARKGRAY)
+      ? setbkcolor(DARKGRAY)
+      : setbkcolor(WHITE);
     setcolor(BLACK);
     outtextxy(a.x,a.y,text);
     setcolor(old_col);
@@ -106,12 +129,29 @@ Point getActualCursor(Point cur)
     return {col, row};
 }
 
+int getFirstVisiblePosition()
+{
+    int pos = 0;
+    int row = 0;
+    while(buf[pos] != '\0' && row < start_num)
+    {
+        if (buf[pos] == '\n')
+        {
+            row++;
+        }
+        pos++;
+    }
+    return pos;
+}
+
 void drawCursor(int col)
 {
+    if (cursor.x < 0 || cursor.y < start_num) { return; }
     int old_col = getcolor();
     Point cur = getActualCursor(cursor);
+    Point bgn = pixelToCoordinate(cur), dst = pixelToCoordinate(Point(cur.x,cur.y+1));
     setcolor(col);
-    line(61+12*cur.x,(cur.y - start_num)*20,61+12*cur.x,20+(cur.y - start_num)*20);
+    line(bgn.x,bgn.y,dst.x,dst.y);
     setcolor(old_col);
 }
 
@@ -129,7 +169,7 @@ void clearRowAfter(Point cursor, int position)
     while(buf[pos] != '\0' && buf[pos] != '\n')
     {
         char str[2] = {' ','\0'};
-        drawText({62 + cur.x*12, (cur.y-start_num)*20}, str);
+        drawText(pixelToCoordinate(cur), str);
         cur = {cur.x+1,cur.y};
         pos++;
     }
@@ -152,7 +192,7 @@ void clearAllAfter(Point cursor, int position)
         else
         {
             char str[2] = {' ','\0'};
-            drawText({62 + cur.x*12, (cur.y-start_num)*20}, str);
+            drawText(pixelToCoordinate(cur), str);
             cur = {cur.x+1,cur.y};
         }
         pos++;
@@ -219,11 +259,24 @@ void drawText()
         else if (row >= start_num && row < start_num + Height/20)
         {
             char str[2] = {buf[pos],'\0'};
-            drawText({62+col*12,(row-start_num)*20}, str);
+            drawText(pixelToCoordinate({col,row}), str);
             col++;
         }
         pos++;
     }
+}
+
+void drawPosition()
+{
+    char str[5];
+    itoa(cursor.y,str,10);
+    drawText({50*12,0},"Row: ");
+    drawText({60*12,0},"Col: ");
+    drawText({54*12,0},"     ");
+    drawText({54*12,0},str);
+    itoa(cursor.x,str,10);
+    drawText({64*12,0},"     ");
+    drawText({64*12,0},str);
 }
 
 void drawSidebar()
@@ -231,14 +284,14 @@ void drawSidebar()
     for(int i = 0; i < 30; i++)
     {
         int num = start_num + i;
-        char str[10] = "", strnum[10], str2[] = "0";
+        char str[10] = "", strnum[10];
         itoa(num,strnum,10);
         for(int j = 0; j < 5 - strlen(strnum); j++)
         {
-            strcat(str,str2);
+            strcat(str,"0");
         }
         strcat(str,strnum);
-        drawText({0,i*20},str);
+        drawText({0,yoffset + i*charheight},str);
     }
 }
 
@@ -246,7 +299,7 @@ void checkScroll()
 {
     if (cursor.y < start_num || cursor.y >= start_num + 30)
     {
-        clearAllAfter({0,0},0);
+        clearAllAfter({0,0},getFirstVisiblePosition());
         start_num += (cursor.y < start_num) ? -1 : 1;
         drawText();
         drawSidebar();
@@ -275,13 +328,12 @@ void highlightSelection(int col)
         //Underline all chars 
         for(int i = pos1; i < pos2; i++)
         {
-            if (buf[i] == '\n') {
-                temp = {0, temp.y+1};
+            if (buf[i] != '\n')
+            {
+                Point bgn = pixelToCoordinate({temp.x,temp.y+1}),dst = pixelToCoordinate({temp.x+1,temp.y+1});
+                line(bgn.x,bgn.y,dst.x,dst.y);
             }
-            else {
-                line(60+(temp.x)*12,(temp.y+1)*20,60+(temp.x+1)*12,(temp.y+1)*20);
-                temp = {temp.x+1, temp.y};
-            }
+            temp = (buf[i] == '\n') ? Point(0, temp.y+1) : Point(temp.x+1, temp.y);
         }
         setcolor(old_col);
     }
@@ -355,11 +407,12 @@ void pasteSelection()
 int main()
 {
     initwindow(Width, Height);
-    //settextjustify(LEFT_TEXT,TOP_TEXT);
     settextstyle(DEFAULT_FONT, 0, 0);
     setbkcolor(WHITE);
     cleardevice();
-    drawFillRect({0,0},{60,Height},LIGHTGRAY);
+    drawFillRect({0,0},{Width,yoffset-1},DARKGRAY);
+    drawFillRect({0,yoffset},{xoffset-2,Height},LIGHTGRAY);
+    drawPosition();
     drawSidebar();
     while (true) {
         if (ismouseclick(WM_MOUSEWHEEL))
@@ -367,7 +420,7 @@ int main()
             int scroll_num = getmousescroll();
             if (scroll_num != 0 && start_num - sgn(scroll_num) >= 0)
             {
-                clearAllAfter({0,0},0);
+                clearAllAfter({0,0},getFirstVisiblePosition());
                 drawCursor(WHITE);
                 start_num -= sgn(scroll_num);
                 drawText( );
@@ -378,22 +431,24 @@ int main()
         if(ismouseclick(WM_LBUTTONUP))
         {
             drawCursor(WHITE);
-            cursor = {(mousex() - 60)/12, mousey()/20};
+            cursor = coordinateToPixel({mousex(),mousey()});
             drawCursor(BLACK);
             clearmouseclick(WM_LBUTTONUP);
             clearmouseclick(WM_LBUTTONDOWN);
             cursor_down = false;
+            drawPosition();
         }
         else if(ismouseclick(WM_LBUTTONDOWN) && !cursor_down)
         {
             highlightSelection(WHITE);
-            copy_start = {(mousex() - 60)/12, mousey()/20};
+            copy_start = coordinateToPixel({mousex(),mousey()});
             cursor_down = true;
+            drawPosition();
         }
         else if(ismouseclick(WM_MOUSEMOVE) && ismouseclick(WM_LBUTTONDOWN))
         {
             drawCursor(WHITE);
-            cursor = {(mousex() - 60)/12, mousey()/20};
+            cursor = coordinateToPixel({mousex(),mousey()});
             highlightSelection(BLACK);
             drawCursor(BLACK);
             clearmouseclick(WM_MOUSEMOVE);
@@ -474,6 +529,8 @@ int main()
             checkScroll();
             highlightSelection(BLACK);
             drawCursor(BLACK);
+            drawPosition();
+
         }
 
         if (counter % 50 == 0) {
