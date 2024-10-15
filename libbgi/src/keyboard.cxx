@@ -1,5 +1,6 @@
 #include <windows.h>        // Provides Win32 API
 #include <windowsx.h>       // Provides GDI helper macros
+#include <shlobj.h>
 #include "../include/bgi/winbgim.h"         // API routines
 #include "../include/bgi/winbgitypes.h"    // Internal structure data
 
@@ -145,6 +146,35 @@ bool checkPressed(const char *key)
     return pWndData->key_down[VK_CONTROL];
   }
   return false;
+}
+
+void browseFilePath(char *path)
+{
+  WindowData *pWndData = BGI__GetWindowDataPtr( );
+  BROWSEINFO bi = { 0 };
+  bi.hwndOwner = pWndData->hWnd;
+  bi.lpszTitle = ("Browse for file...");
+  bi.ulFlags = BIF_USENEWUI | BIF_BROWSEINCLUDEFILES;
+    
+  LPITEMIDLIST pidl = SHBrowseForFolder(&bi);
+  
+  if (pidl != 0)
+  {
+    //get the name of the folder and put it in path
+    SHGetPathFromIDList(pidl, path);
+    
+    //free memory used
+    IMalloc* imalloc = 0;
+    if (SUCCEEDED(SHGetMalloc(&imalloc)))
+    {
+      imalloc->Free(pidl);
+      imalloc->Release();
+    }
+  }
+  else
+  {
+    path[0] = '\0';
+  }
 }
 
 //Get the character associated with the keypress
