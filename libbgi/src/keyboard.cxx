@@ -148,6 +148,35 @@ bool checkPressed(const char *key)
   return false;
 }
 
+void browseFolderPath(char *path)
+{
+  WindowData *pWndData = BGI__GetWindowDataPtr( );
+  BROWSEINFO bi = { 0 };
+  bi.hwndOwner = pWndData->hWnd;
+  bi.lpszTitle = ("Browse for folder...");
+  bi.ulFlags = BIF_USENEWUI;
+    
+  LPITEMIDLIST pidl = SHBrowseForFolder(&bi);
+  
+  if (pidl != 0)
+  {
+    //get the name of the folder and put it in path
+    SHGetPathFromIDList(pidl, path);
+    
+    //free memory used
+    IMalloc* imalloc = 0;
+    if (SUCCEEDED(SHGetMalloc(&imalloc)))
+    {
+      imalloc->Free(pidl);
+      imalloc->Release();
+    }
+  }
+  else
+  {
+    path[0] = '\0';
+  }
+}
+
 void browseFilePath(char *path)
 {
   WindowData *pWndData = BGI__GetWindowDataPtr( );

@@ -10,9 +10,9 @@ SET(GCC_COVERAGE_COMPILE_FLAGS "-m64 -fno-rtti -fno-exceptions -Wno-error  -Wwri
 SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS}")
 
 add_subdirectory(libbgi)
-add_subdirectory(test)
+add_subdirectory(notepad)
 
-#target_link_libraries(test libbgi)
+#target_link_libraries(notepad libbgi)
 
 #SET(GCC_COVERAGE_LINK_FLAGS    "-lgdi32 -lcomdlg32 -luuid -loleaut32 -lole32")
 #

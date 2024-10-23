@@ -343,6 +343,7 @@ bool checkKeypress(char c);
 bool checkPressed(const char *key);
 void keypressName(char *str);
 void browseFilePath(char *path);
+void browseFolderPath(char *path);
 
 // Palette Functions
 palettetype *getdefaultpalette( );

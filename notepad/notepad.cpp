@@ -20,8 +20,7 @@ const int yoffset = 24;
 const int charwidth = 12;
 const int charheight = 20;
 
-char file_name_buf[MAX_PATH];
-char address[MAX_PATH];
+char file_name_buf[MAX_PATH] = "";
 
 char blankstr[6] = {' ',' ',' ',' ',' ','\0'};
 char rowstr[6] = {'R','o','w',':',' ','\0'};
@@ -59,41 +58,40 @@ class Button
             topLeft = p;
             text = msg;
             saveAction = save;
-            drawFillRect(topLeft,{topLeft.x+charwidth*text.length(),topLeft.y+charheight},BLACK);
+            drawFillRect(topLeft,{topLeft.x+charwidth*((int)text.length()),topLeft.y+charheight},BLACK);
         }
         void drawButton()
         {
-            bool hover = (mousex() >= topLeft.x && mousex() <= topLeft.x+charwidth*text.length() &&
+            this->active = (mousex() >= topLeft.x && mousex() <= topLeft.x+charwidth*((int)text.length()) &&
                 mousey() >= topLeft.y && mousey() <= topLeft.y+charheight);
-            if (hover != active)
-            {
-                this->active = hover;
-                printf("Switching:%d\n",this->active);
-                int old_col = getbkcolor();
-                drawFillRect({topLeft.x,topLeft.y},
-                             {topLeft.x+charwidth*text.length(),topLeft.y+charheight},
-                             (this->active)?DARKGRAY:LIGHTGRAY);
-                setbkcolor((this->active)?DARKGRAY:LIGHTGRAY);
-                outtextxy(topLeft.x,topLeft.y,text.c_str());
-                setbkcolor(old_col);
-            }
+            int old_col = getbkcolor();
+            drawFillRect({topLeft.x,topLeft.y},
+                         {topLeft.x+charwidth*((int)text.length()),topLeft.y+charheight},
+                         (this->active)?DARKGRAY:LIGHTGRAY);
+            setbkcolor((this->active)?DARKGRAY:LIGHTGRAY);
+            outtextxy(topLeft.x,topLeft.y,const_cast<char *>(text.c_str()));
+            setbkcolor(old_col);
         }
 
         void buttonAction()
         {
             if (this->active && saveAction)
             {
-                char path[MAX_PATH];
-                browseFilePath(path);
-                printf("Saving: %s\n",path);
-                saveFile(path);
+                if (strlen(file_name_buf) > 0)
+                {
+                    saveFile(file_name_buf);
+                }
+                else 
+                {
+                    char path[MAX_PATH];
+                    browseFolderPath(path);
+                    saveFile(path);
+                }
             }
             else if (this->active)
             {
-                char path[MAX_PATH];
-                browseFilePath(path);
-                printf("Opening path: %s\n",path);
-                loadFile(path);
+                browseFilePath(file_name_buf);
+                loadFile(file_name_buf);
             }
         }
 };
@@ -105,6 +103,7 @@ template <typename T> int sgn(T val) {
     return (T(0) < val) - (val < T(0));
 }
 
+//Fills a rectangle with color at point a(top, left) and point b(bottom,left) 
 void drawFillRect(Point a, Point b, int col)
 {
     int old_col = getcolor();
@@ -117,16 +116,19 @@ void drawFillRect(Point a, Point b, int col)
     setcolor(old_col);
 }
 
+//Converts the text position to a coordinate on the screen
 Point pixelToCoordinate(Point a)
 {
     return Point(xoffset+a.x*charwidth,yoffset+(a.y-start_num)*charheight);
 }
 
+//Converts the coordinate on the screen to the text position
 Point coordinateToPixel(Point a)
 {
     return Point((a.x-xoffset)/charwidth,(a.y-yoffset)/charheight);
 }
 
+//Draws the string at Point a on the screen
 void drawText(Point a, char* text) 
 {
     int old_col = getcolor();
@@ -186,6 +188,7 @@ Point getActualCursor(Point cur)
     return {col, row};
 }
 
+//Returns the visible cursor instead of pointed position
 int getFirstVisiblePosition()
 {
     int pos = 0;
@@ -204,6 +207,7 @@ int getFirstVisiblePosition()
     return pos;
 }
 
+//Draws the cursor using the color
 void drawCursor(int col)
 {
     if (cursor.x < 0 || cursor.y < start_num) { return; }
@@ -215,66 +219,14 @@ void drawCursor(int col)
     setcolor(old_col);
 }
 
-//Clears the rest of the row after the position
-void clearRowAfter(Point cursor, int position)
-{
-    int old_col = getbkcolor();
-    setbkcolor(WHITE);
-    Point cur = cursor;
-    if (cur.x > 0)
-    {
-        cur.x -= 1;
-    }
-    int pos = position-1;
-    while(buf[pos] != '\0' && buf[pos] != '\n')
-    {
-        char str[2] = {' ','\0'};
-        drawText(pixelToCoordinate(cur), str);
-        cur = {cur.x+1,cur.y};
-        pos++;
-    }
-    setbkcolor(old_col);
-}
-
-//Clears all text after the position
-void clearAllAfter(Point cursor, int position)
-{
-    int old_col = getbkcolor();
-    setbkcolor(WHITE);
-    Point cur = cursor;
-    int pos = position;
-    while(buf[pos] != '\0')
-    {
-        if (buf[pos] == '\n')
-        {
-            cur = {0, cur.y+1};
-        }
-        else
-        {
-            char str[2] = {' ','\0'};
-            drawText(pixelToCoordinate(cur), str);
-            cur = {cur.x+1,cur.y};
-        }
-        pos++;
-    }
-    setbkcolor(old_col);
-}
-
+//Adds the character at the cursor
 void addCharAtCursor(char *str)
 {
     //Gets the position to add it into
     int pos = getTextPosition(cursor);
 
     //Clear all written strings after this
-    if (str[0] == '\n')
-    {
-        clearAllAfter(getActualCursor(cursor), pos);
-        cursor = {0, cursor.y+1};
-    }
-    else 
-    {
-        cursor = {cursor.x+1,cursor.y};
-    }
+    cursor = (str[0] == '\n') ? Point(0, cursor.y+1) : cursor = Point(cursor.x+1,cursor.y);
 
     //Adds the new char in and moves all other chars 
     for(int i = strlen(buf); i >= pos; i--)
@@ -284,22 +236,14 @@ void addCharAtCursor(char *str)
     buf[pos] = str[0];
 }
 
+//Removes the character at the cursor
 void removeCharAtCursor()
 {
     //Gets the position to add it into
     int pos = getTextPosition(cursor);
 
     //Clear all written strings after this
-    if(buf[pos-1] == '\n')
-    {
-        clearAllAfter(getActualCursor(cursor), pos);
-        cursor = getActualCursor({9999, cursor.y-1});
-    }
-    else 
-    {
-        clearRowAfter(getActualCursor(cursor), pos);
-        cursor = {cursor.x-1,cursor.y};
-    }
+    cursor = (buf[pos-1] == '\n') ? getActualCursor({9999, cursor.y-1}) : cursor = {cursor.x-1,cursor.y};
 
     for(int i = pos; i <= strlen(buf); i++)
     {
@@ -307,8 +251,10 @@ void removeCharAtCursor()
     }
 }
 
+//Draws all the text on the screen
 void drawText()
 {
+    drawFillRect(Point(xoffset-1,yoffset),Point(Width, Height), WHITE);
     int row = 0, col = 0, pos = 0;
     while (buf[pos] != '\0') {
         if (buf[pos] == '\n')
@@ -329,6 +275,7 @@ void drawText()
     }
 }
 
+//Draws the position of the cursor
 void drawPosition()
 {
     Point cur = getActualCursor(cursor);
@@ -343,6 +290,7 @@ void drawPosition()
     drawText({64*12,0},str);
 }
 
+//Draws the sidebar numbers
 void drawSidebar()
 {
     for(int i = 0; i < (Height - (yoffset+2))/20; i++)
@@ -359,24 +307,21 @@ void drawSidebar()
     }
 }
 
+//Checks the scroll start position
 void checkScroll()
 {
     Point cur = getActualCursor(cursor);
     if (cur.y < start_num || cur.y >= start_num + ((Height - (yoffset+2))/20))
     {
-        clearAllAfter({0,0},getFirstVisiblePosition());
         start_num += (cursor.y < start_num) ? -1 : 1;
-        drawText();
-        drawSidebar();
     }
     if (cur.x < width_num || cur.x >= width_num +(Width - (xoffset+2))/12)
     {
-        clearAllAfter({0,0},getFirstVisiblePosition());
         width_num += (cur.x < width_num) ? -1 : cur.x - (Width - (xoffset+2))/12;
-        drawText();
     }
 }
 
+//Draws the copyable selection
 void highlightSelection(int col)
 {
     if (copy_start.x != -1)
@@ -410,34 +355,33 @@ void highlightSelection(int col)
     }
 }
 
+//Tracks the copyable selection
 void trackCopy()
 {
     copy_start = (!checkPressed("Shift")) ? Point(-1,-1) : copy_start ;
 }
 
+//Loads a file into the notepad
 void loadFile(char *path)
 {
     FILE *fp = fopen(path,"r");
     if(fp)
     {
         int acc = 0;
-        clearAllAfter({0,0},getFirstVisiblePosition());
         while((buf[acc] = getc(fp)) != EOF) { acc++; }
+        buf[acc] = '\0';
         fclose(fp);
         cursor = {0,0};
-        drawText();
     }
 }
 
+//Saves a file from the notepad to the filesystem
 void saveFile(char *path)
 {
-    char fname[14] = "/new_file.txt";
-    strcat(path,fname);
     FILE *fp = fopen(path,"w");
     if(fp)
     {
         int acc = 0;
-        clearAllAfter({0,0},getFirstVisiblePosition());
         while(buf[acc] != '\0') {
             putc(buf[acc],fp);
             acc++;
@@ -446,7 +390,7 @@ void saveFile(char *path)
     }
 }
 
-// Get the horizontal and vertical screen sizes in pixel
+//Get the horizontal and vertical screen sizes in pixel
 void GetDesktopResolution(int& horizontal, int& vertical)
 {
    RECT desktop;
@@ -461,6 +405,7 @@ void GetDesktopResolution(int& horizontal, int& vertical)
    vertical = desktop.bottom;
 }
 
+//Copies the selection to the clipboard
 void copySelection()
 {
     if (copy_start.x != -1)
@@ -481,10 +426,10 @@ void copySelection()
             clipboard[i-pos1] = buf[i];
         }
         clipboard[pos2] = '\0';
-        //printf("Copied selection:%s\n", clipboard);
     }
 }
 
+//Removes the selection
 void clearSelection()
 {
     Point temp = {cursor.x, cursor.y};
@@ -507,6 +452,7 @@ void clearSelection()
     copy_start = {-1,-1};
 }
 
+//Copies the clipboard to the screen
 void pasteSelection()
 {
     if (clipboard[0] == '\0') { return; }
@@ -518,34 +464,26 @@ void pasteSelection()
         acc++;
     }
     copy_start = {-1,-1};
-    drawText();
 }
 
 int main()
 {
-    //GetDesktopResolution(Width,Height);
-    initwindow(Width, Height, "Notepad");
-    settextstyle(DEFAULT_FONT, 0, 0);
-    setbkcolor(WHITE);
-    cleardevice();
+    GetDesktopResolution(Width,Height);
+    initwindow(Width, Height, "Notepad",0,0,true);
     Button *fOpenButton = new Button(Point(10,0),"Open File",false);
     Button *fSaveButton = new Button(Point(150,0),"Save File",true);
-    drawFillRect({0,0},{Width,yoffset-1},DARKGRAY);
-    drawFillRect({0,yoffset},{xoffset-2,Height},LIGHTGRAY);
-    drawPosition();
-    drawSidebar();
+    settextstyle(DEFAULT_FONT, 0, 0);
+    setbkcolor(WHITE);
+
     while (true) {
         if (ismouseclick(WM_MOUSEWHEEL))
         {
             int scroll_num = getmousescroll();
             if (scroll_num != 0 && start_num - sgn(scroll_num) >= 0)
             {
-                clearAllAfter({0,0},getFirstVisiblePosition());
                 drawCursor(WHITE);
                 start_num -= sgn(scroll_num);
-                drawText( );
                 drawCursor(BLACK);
-                drawSidebar( );
             }
         }
         
@@ -559,14 +497,12 @@ int main()
             clearmouseclick(WM_LBUTTONUP);
             clearmouseclick(WM_LBUTTONDOWN);
             cursor_down = false;
-            drawPosition();
         }
         else if(ismouseclick(WM_LBUTTONDOWN) && !cursor_down)
         {
             highlightSelection(WHITE);
             copy_start = coordinateToPixel({mousex(),mousey()});
             cursor_down = true;
-            drawPosition();
         }
         else if(ismouseclick(WM_MOUSEMOVE) && ismouseclick(WM_LBUTTONDOWN))
         {
@@ -591,7 +527,6 @@ int main()
                 if (!(cursor.x == 0 and cursor.y == 0))
                 {
                     removeCharAtCursor();
-                    drawText();
                 }
             }
             else if (checkPressed("Left")) 
@@ -641,17 +576,23 @@ int main()
                     }
                     else if(str[0] == 'O' || str[0] == 'o')
                     {
-                        char path[MAX_PATH];
-                        browseFilePath(path);
-                        printf("Path: %s\n",path);
-                        loadFile(path);
+                        browseFilePath(file_name_buf);
+                        loadFile(file_name_buf);
                     }
                     else if(str[0] == 'S' || str[0] == 's')
                     {
-                        char path[MAX_PATH];
-                        browseFilePath(path);
-                        printf("Path: %s\n",path);
-                        saveFile(path);
+                        if (strlen(file_name_buf) > 0)
+                        {
+                            saveFile(file_name_buf);
+                        }
+                        else
+                        {
+                            char path[MAX_PATH];
+                            browseFolderPath(path);
+                            char fname[14] = "/new_file.txt";
+                            strcat(path,fname);
+                            saveFile(path);
+                        }
                     }
                 }
                 else if (str[0] != '\0') 
@@ -659,15 +600,17 @@ int main()
                     copy_start = {-1,-1};
                     addCharAtCursor(str);
                 }
-                drawText();
             }
             trackCopy();
             checkScroll();
-            highlightSelection(BLACK);
-            drawCursor(BLACK);
-            drawPosition();
         }
-
+        drawFillRect({0,0},{Width,yoffset-1},DARKGRAY);
+        drawFillRect({0,yoffset},{xoffset-2,Height},LIGHTGRAY);
+        drawSidebar();
+        drawText();
+        highlightSelection(BLACK);
+        drawCursor(cursor_col);
+        drawPosition();
         if (counter % 50 == 0) {
             cursor_col = BLACK;
             drawCursor(cursor_col);
@@ -679,6 +622,7 @@ int main()
         fOpenButton->drawButton();
         fSaveButton->drawButton();
         counter++;
+        swapbuffers();
         delay(1);
     }
     getchar();
